@@ -117,8 +117,178 @@
       "isOfficial": true
     },
     {
+      "id": "ba727ec6-5bd2-4bf7-bf0b-a078594af086",
+      "name": "Sing-Box AnyTLS 简化版(适合小白用户)",
+      "description": "快速部署 SingBox AnyTLS 协议，自动生成自签名证书，支持自定义端口",
+      "serviceType": "sing-box",
+      "category": "网络服务",
+      "commands": [
+        "apt update",
+        "apt install -y apt-transport-https ca-certificates curl lsof wget tar openssl",
+        "mkdir -p /tmp/singbox_install",
+        "cd /tmp/singbox_install && curl -L -o sing-box.tar.gz \"{{download_url}}\"",
+        "cd /tmp/singbox_install && tar -xzf sing-box.tar.gz",
+        "cd /tmp/singbox_install && sudo mv sing-box-*/sing-box /usr/local/bin/",
+        "sudo chmod +x /usr/local/bin/sing-box",
+        "sudo ln -sf /usr/local/bin/sing-box /usr/bin/sing-box",
+        "sudo mkdir -p /etc/sing-box",
+        "sudo mkdir -p /var/log/sing-box",
+        "sudo mkdir -p /var/lib/sing-box",
+        "sudo mkdir -p /root/vpstools-certs",
+        "sudo openssl req -x509 -newkey rsa:4096 -keyout /root/vpstools-certs/private.key -out /root/vpstools-certs/cert.crt -days 3650 -nodes -subj \"/C=CN/ST=State/L=City/O=Organization/CN=localhost\"",
+        "{{create_anytls_config}}",
+        "{{create_anytls_service}}",
+        "sudo systemctl daemon-reload",
+        "sudo systemctl enable sing-box",
+        "sudo systemctl restart sing-box",
+        "sudo ufw allow {{port}}/tcp",
+        "sing-box version",
+        "cd / && sudo rm -rf /tmp/singbox_install"
+      ],
+      "configTemplate": "{\n    \"log\": {\n        \"level\": \"info\",\n        \"timestamp\": true,\n        \"output\": \"stdout\"\n    },\n    \"inbounds\": [\n        {\n            \"type\": \"anytls\",\n            \"tag\": \"anytls-in\",\n            \"listen\": \"::\",\n            \"listen_port\": {{port}},\n            \"users\": [\n                {\n                    \"name\": \"{{username}}\",\n                    \"password\": \"{{password}}\"\n                }\n            ],\n            \"padding_scheme\": [\n                \"stop=3\",\n                \"0=30-30\",\n                \"1=100-400\",\n                \"2=400-500,c,500-1000,c,500-1000,c,500-1000,c,500-1000\"\n            ],\n            \"tls\": {\n                \"enabled\": true,\n                \"certificate_path\": \"/root/vpstools-certs/cert.crt\",\n                \"key_path\": \"/root/vpstools-certs/private.key\"\n            }\n        }\n    ],\n    \"outbounds\": [\n        {\n            \"type\": \"direct\",\n            \"tag\": \"direct\"\n        },\n        {\n            \"type\": \"block\",\n            \"tag\": \"block\"\n        }\n    ],\n    \"route\": {\n        \"rules\": [\n            {\n                \"ip_cidr\": [\n                    \"127.0.0.1/32\",\n                    \"10.0.0.0/8\",\n                    \"172.16.0.0/12\",\n                    \"192.168.0.0/16\",\n                    \"169.254.0.0/16\",\n                    \"::1/128\",\n                    \"fc00::/7\",\n                    \"fe80::/10\"\n                ],\n                \"outbound\": \"direct\"\n            }\n        ],\n        \"final\": \"direct\"\n    }\n}",
+      "serviceTemplate": "[Unit]\nDescription=sing-box service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
+      "variables": [
+        {
+          "id": "49debd81-24f0-457c-803d-01b72c9623ba",
+          "name": "protocol",
+          "description": "代理协议",
+          "type": "select",
+          "defaultValue": "anytls",
+          "required": true,
+          "options": [
+              "anytls"
+         ]
+        },
+        {
+          "id": "8723aff1-5e2c-430b-afef-e37f5422a3c6",
+          "name": "port",
+          "description": "监听端口",
+          "type": "number",
+          "defaultValue": "5677",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "b6401576-bf66-4cf2-9f5b-80d96388c123",
+          "name": "username",
+          "description": "用户名",
+          "type": "string",
+          "defaultValue": "sekai",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "61458854-b358-4af5-b47c-a741daabb403",
+          "name": "password",
+          "description": "密码",
+          "type": "password",
+          "defaultValue": "password",
+          "required": true,
+          "options": null
+        },
+      ],
+      "tags": ["sing-box", "anytls", "proxy", "tls"],
+      "rating": 4.9,
+      "downloads": 1200,
+      "isOfficial": true
+    },
+    {
+      "id": "15bcba2a-c88c-4f2b-8a16-38c8c8df7ec3",
+      "name": "Sing-Box Hysteria2 简化版(适合小白用户)",
+      "description": "快速部署 SingBox Hysteria2 协议，自动生成自签名证书，支持自定义端口和带宽配置",
+      "serviceType": "sing-box",
+      "category": "网络服务",
+      "commands": [
+        "apt update",
+        "apt install -y apt-transport-https ca-certificates curl lsof wget tar openssl",
+        "mkdir -p /tmp/singbox_install",
+        "cd /tmp/singbox_install && curl -L -o sing-box.tar.gz \"{{download_url}}\"",
+        "cd /tmp/singbox_install && tar -xzf sing-box.tar.gz",
+        "cd /tmp/singbox_install && sudo mv sing-box-*/sing-box /usr/local/bin/",
+        "sudo chmod +x /usr/local/bin/sing-box",
+        "sudo ln -sf /usr/local/bin/sing-box /usr/bin/sing-box",
+        "sudo mkdir -p /etc/sing-box",
+        "sudo mkdir -p /var/log/sing-box",
+        "sudo mkdir -p /var/lib/sing-box",
+        "sudo mkdir -p /root/vpstools-certs",
+        "sudo openssl req -x509 -newkey rsa:4096 -keyout /root/vpstools-certs/private.key -out /root/vpstools-certs/cert.crt -days 3650 -nodes -subj \"/C=CN/ST=State/L=City/O=Organization/CN=localhost\"",
+        "{{create_hysteria2_config}}",
+        "{{create_hysteria2_service}}",
+        "sudo systemctl daemon-reload",
+        "sudo systemctl enable sing-box",
+        "sudo systemctl restart sing-box",
+        "sudo ufw allow {{port}}/tcp",
+        "sing-box version",
+        "cd / && sudo rm -rf /tmp/singbox_install"
+      ],
+      "configTemplate": "{\n    \"log\": {\n        \"level\": \"info\",\n        \"timestamp\": true,\n        \"output\": \"stdout\"\n    },\n    \"inbounds\": [\n        {\n            \"type\": \"hysteria2\",\n            \"tag\": \"hysteria2-in\",\n            \"listen\": \"::\",\n            \"listen_port\": {{port}},\n            \"up_mbps\": {{up_mbps}},\n            \"down_mbps\": {{down_mbps}},\n            \"users\": [\n                {\n                    \"name\": \"{{username}}\",\n                    \"password\": \"{{password}}\"\n                }\n            ],\n            \"tls\": {\n                \"enabled\": true,\n                \"certificate_path\": \"/root/vpstools-certs/cert.crt\",\n                \"key_path\": \"/root/vpstools-certs/private.key\"\n            }\n        }\n    ],\n    \"outbounds\": [\n        {\n            \"type\": \"direct\",\n            \"tag\": \"direct\"\n        },\n        {\n            \"type\": \"block\",\n            \"tag\": \"block\"\n        }\n    ],\n    \"route\": {\n        \"rules\": [\n            {\n                \"ip_cidr\": [\n                    \"127.0.0.1/32\",\n                    \"10.0.0.0/8\",\n                    \"172.16.0.0/12\",\n                    \"192.168.0.0/16\",\n                    \"169.254.0.0/16\",\n                    \"::1/128\",\n                    \"fc00::/7\",\n                    \"fe80::/10\"\n                ],\n                \"outbound\": \"direct\"\n            }\n        ],\n        \"final\": \"direct\"\n    }\n}",
+      "serviceTemplate": "[Unit]\nDescription=sing-box service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
+      "variables": [
+          {
+            "id": "6ac448ee-18c0-4d0d-998a-eec96844b7b8",
+            "name": "protocol",
+            "description": "代理协议",
+            "type": "select",
+            "defaultValue": "hysteria2",
+            "required": true,
+            "options": [
+                "hysteria2"
+           ]
+          },
+        {
+          "id": "d4c02b69-b6f1-45b7-b4b9-97b59bae64d8",
+          "name": "port",
+          "description": "监听端口",
+          "type": "number",
+          "defaultValue": "5443",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "e1fea4a4-d243-4d45-92d8-ceedd178dc1d",
+          "name": "username",
+          "description": "用户名",
+          "type": "string",
+          "defaultValue": "sekai",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "d7f41f5f-d9cf-4667-baea-cd01a462d318",
+          "name": "password",
+          "description": "密码",
+          "type": "password",
+          "defaultValue": "password",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "4c6b37a5-5604-4035-8d28-b2b403993bd8",
+          "name": "up_mbps",
+          "description": "上行带宽 (Mbps)",
+          "type": "number",
+          "defaultValue": "1000",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "63467ed0-b6a1-4c6f-8748-d0d207eac161",
+          "name": "down_mbps",
+          "description": "下行带宽 (Mbps)",
+          "type": "number",
+          "defaultValue": "1000",
+          "required": true,
+          "options": null
+        }
+      ],
+      "tags": ["sing-box", "hysteria2", "proxy", "tls", "udp"],
+      "rating": 4.8,
+      "downloads": 600,
+      "isOfficial": true
+    },
+    {
       "id": "2a57f424-715a-45f5-b016-70bc5111eea1",
-      "name": "Sing-Box",
+      "name": "Sing-Box全协议支持(适合资深用户)",
       "description": "智能安装 SingBox 代理服务，自动检测系统架构并下载最新版本",
       "serviceType": "sing-box",
       "category": "网络服务",
