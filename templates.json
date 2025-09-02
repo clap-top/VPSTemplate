@@ -139,14 +139,14 @@
         "{{create_anytls_config}}",
         "{{create_anytls_service}}",
         "sudo systemctl daemon-reload",
-        "sudo systemctl enable sing-box",
-        "sudo systemctl restart sing-box",
+        "sudo systemctl enable sing-box-vless",
+        "sudo systemctl restart sing-box-vless",
         "sudo ufw allow {{port}}/tcp",
         "sing-box version",
         "cd / && sudo rm -rf /tmp/singbox_install"
       ],
       "configTemplate": "{\n    \"log\": {\n        \"level\": \"info\",\n        \"timestamp\": true,\n        \"output\": \"stdout\"\n    },\n    \"inbounds\": [\n        {\n            \"type\": \"anytls\",\n            \"tag\": \"anytls-in\",\n            \"listen\": \"::\",\n            \"listen_port\": {{port}},\n            \"users\": [\n                {\n                    \"name\": \"{{username}}\",\n                    \"password\": \"{{password}}\"\n                }\n            ],\n            \"padding_scheme\": [\n                \"stop=3\",\n                \"0=30-30\",\n                \"1=100-400\",\n                \"2=400-500,c,500-1000,c,500-1000,c,500-1000,c,500-1000\"\n            ],\n            \"tls\": {\n                \"enabled\": true,\n                \"certificate_path\": \"/root/vpstools-certs/cert.crt\",\n                \"key_path\": \"/root/vpstools-certs/private.key\"\n            }\n        }\n    ],\n    \"outbounds\": [\n        {\n            \"type\": \"direct\",\n            \"tag\": \"direct\"\n        },\n        {\n            \"type\": \"block\",\n            \"tag\": \"block\"\n        }\n    ],\n    \"route\": {\n        \"rules\": [\n            {\n                \"ip_cidr\": [\n                    \"127.0.0.1/32\",\n                    \"10.0.0.0/8\",\n                    \"172.16.0.0/12\",\n                    \"192.168.0.0/16\",\n                    \"169.254.0.0/16\",\n                    \"::1/128\",\n                    \"fc00::/7\",\n                    \"fe80::/10\"\n                ],\n                \"outbound\": \"direct\"\n            }\n        ],\n        \"final\": \"direct\"\n    }\n}",
-      "serviceTemplate": "[Unit]\nDescription=sing-box service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
+      "serviceTemplate": "[Unit]\nDescription=sing-box-anytls service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config-anytls.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
       "variables": [
         {
           "id": "49debd81-24f0-457c-803d-01b72c9623ba",
@@ -155,9 +155,7 @@
           "type": "select",
           "defaultValue": "anytls",
           "required": true,
-          "options": [
-              "anytls"
-         ]
+          "options": ["anytls"]
         },
         {
           "id": "8723aff1-5e2c-430b-afef-e37f5422a3c6",
@@ -185,11 +183,135 @@
           "defaultValue": "password",
           "required": true,
           "options": null
-        },
+        }
       ],
       "tags": ["sing-box", "anytls", "proxy", "tls"],
       "rating": 4.9,
       "downloads": 1200,
+      "isOfficial": true
+    },
+    {
+      "id": "f30f50d3-b008-492d-97d5-204cdde9665c",
+      "name": "Sing-Box VLESS Reality简化版(适合小白用户)",
+      "description": "快速部署支持 Reality 的 VLESS 代理服务，使用 XTLS Vision 流控，适合小白用户",
+      "serviceType": "sing-box",
+      "category": "网络服务",
+      "commands": [
+        "apt update",
+        "apt install -y apt-transport-https ca-certificates curl lsof wget tar openssl",
+        "mkdir -p /tmp/singbox_install",
+        "cd /tmp/singbox_install && curl -L -o sing-box.tar.gz \"{{download_url}}\"",
+        "cd /tmp/singbox_install && tar -xzf sing-box.tar.gz",
+        "cd /tmp/singbox_install && sudo mv sing-box-*/sing-box /usr/local/bin/",
+        "sudo chmod +x /usr/local/bin/sing-box",
+        "sudo ln -sf /usr/local/bin/sing-box /usr/bin/sing-box",
+        "sudo mkdir -p /etc/sing-box",
+        "sudo mkdir -p /var/log/sing-box",
+        "sudo mkdir -p /var/lib/sing-box",
+        "sudo systemctl daemon-reload",
+        "sudo systemctl enable sing-box-vless",
+        "sudo systemctl restart sing-box-vless",
+        "sudo ufw allow {{port}}/tcp",
+        "sing-box version",
+        "cd / && sudo rm -rf /tmp/singbox_install"
+      ],
+      "configTemplate": "{{vless_reality_config}}",
+      "serviceTemplate": "[Unit]\nDescription=sing-box-vless service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config-vless.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
+      "variables": [
+        {
+          "id": "b3d98256-8b42-4c58-88e4-a5b0f9759ad9",
+          "name": "protocol",
+          "description": "代理协议",
+          "type": "select",
+          "defaultValue": "vless",
+          "required": true,
+          "options": ["vless"]
+        },
+        {
+          "id": "f2fd2b8d-b505-491e-9c85-996e7f91ea90",
+          "name": "port",
+          "description": "监听端口",
+          "type": "number",
+          "defaultValue": "9443",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "20626efe-1df2-49b8-81c5-fdbafaba4501",
+          "name": "uuid",
+          "description": "VLESS 用户 UUID (部署时自动生成)",
+          "type": "string",
+          "defaultValue": "",
+          "required": false,
+          "options": null
+        },
+        {
+          "id": "446d4eb5-0a0e-421a-bd4a-ddb110365aaf",
+          "name": "vless_flow",
+          "description": "VLESS 流控模式",
+          "type": "select",
+          "defaultValue": "xtls-rprx-vision",
+          "required": true,
+          "options": ["xtls-rprx-vision"]
+        },
+        {
+          "id": "f9cbd55a-3ba5-46b4-b230-3f4329e7a168",
+          "name": "tls_server_name",
+          "description": "TLS 服务器名称 (SNI)",
+          "type": "string",
+          "defaultValue": "www.tesla.com",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "f45b0aa2-1c75-4375-b328-766c4e9b4cfc",
+          "name": "reality_handshake_server",
+          "description": "Reality 握手服务器",
+          "type": "string",
+          "defaultValue": "www.tesla.com",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "e4039c7c-e887-4278-a114-643603a8a3d9",
+          "name": "reality_handshake_port",
+          "description": "Reality 握手端口",
+          "type": "number",
+          "defaultValue": "443",
+          "required": true,
+          "options": null
+        },
+        {
+          "id": "bf48b317-6b27-4cb8-adc0-47e422942a01",
+          "name": "reality_private_key",
+          "description": "Reality 私钥 (部署时自动生成)",
+          "type": "password",
+          "defaultValue": "",
+          "required": false,
+          "options": null
+        },
+        {
+          "id": "555c9766-b8c3-49ad-b83e-dc619cd06af1",
+          "name": "reality_short_id",
+          "description": "Reality 短 ID (部署时自动生成)",
+          "type": "string",
+          "defaultValue": "",
+          "required": false,
+          "options": null
+        },
+        {
+          "id": "fe4facc3-6f1c-4bd9-aa63-6beb9083ce16",
+          "name": "log_level",
+          "description": "日志级别",
+          "type": "select",
+          "defaultValue": "info",
+          "required": true,
+          "options": ["debug", "info", "warn", "error"]
+        }
+      ],
+      "tags": ["sing-box", "vless", "reality", "xtls", "proxy", "tls"],
+      "rating": 4.8,
+      "downloads": 0,
       "isOfficial": true
     },
     {
@@ -215,26 +337,24 @@
         "{{create_hysteria2_config}}",
         "{{create_hysteria2_service}}",
         "sudo systemctl daemon-reload",
-        "sudo systemctl enable sing-box",
-        "sudo systemctl restart sing-box",
+        "sudo systemctl enable sing-box-vless",
+        "sudo systemctl restart sing-box-vless",
         "sudo ufw allow {{port}}/tcp",
         "sing-box version",
         "cd / && sudo rm -rf /tmp/singbox_install"
       ],
       "configTemplate": "{\n    \"log\": {\n        \"level\": \"info\",\n        \"timestamp\": true,\n        \"output\": \"stdout\"\n    },\n    \"inbounds\": [\n        {\n            \"type\": \"hysteria2\",\n            \"tag\": \"hysteria2-in\",\n            \"listen\": \"::\",\n            \"listen_port\": {{port}},\n            \"up_mbps\": {{up_mbps}},\n            \"down_mbps\": {{down_mbps}},\n            \"users\": [\n                {\n                    \"name\": \"{{username}}\",\n                    \"password\": \"{{password}}\"\n                }\n            ],\n            \"tls\": {\n                \"enabled\": true,\n                \"certificate_path\": \"/root/vpstools-certs/cert.crt\",\n                \"key_path\": \"/root/vpstools-certs/private.key\"\n            }\n        }\n    ],\n    \"outbounds\": [\n        {\n            \"type\": \"direct\",\n            \"tag\": \"direct\"\n        },\n        {\n            \"type\": \"block\",\n            \"tag\": \"block\"\n        }\n    ],\n    \"route\": {\n        \"rules\": [\n            {\n                \"ip_cidr\": [\n                    \"127.0.0.1/32\",\n                    \"10.0.0.0/8\",\n                    \"172.16.0.0/12\",\n                    \"192.168.0.0/16\",\n                    \"169.254.0.0/16\",\n                    \"::1/128\",\n                    \"fc00::/7\",\n                    \"fe80::/10\"\n                ],\n                \"outbound\": \"direct\"\n            }\n        ],\n        \"final\": \"direct\"\n    }\n}",
-      "serviceTemplate": "[Unit]\nDescription=sing-box service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
+      "serviceTemplate": "[Unit]\nDescription=sing-box-hysteria2 service\nDocumentation=https://sing-box.sagernet.org\nAfter=network.target nss-lookup.target\n\n[Service]\nType=simple\nUser=root\nGroup=root\nCapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nAmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE\nExecStart=/usr/local/bin/sing-box run -c /etc/sing-box/config-hysteria2.json\nRestart=on-failure\nRestartSec=1s\nLimitNOFILE=infinity\n\n[Install]\nWantedBy=multi-user.target",
       "variables": [
-          {
-            "id": "6ac448ee-18c0-4d0d-998a-eec96844b7b8",
-            "name": "protocol",
-            "description": "代理协议",
-            "type": "select",
-            "defaultValue": "hysteria2",
-            "required": true,
-            "options": [
-                "hysteria2"
-           ]
-          },
+        {
+          "id": "6ac448ee-18c0-4d0d-998a-eec96844b7b8",
+          "name": "protocol",
+          "description": "代理协议",
+          "type": "select",
+          "defaultValue": "hysteria2",
+          "required": true,
+          "options": ["hysteria2"]
+        },
         {
           "id": "d4c02b69-b6f1-45b7-b4b9-97b59bae64d8",
           "name": "port",
